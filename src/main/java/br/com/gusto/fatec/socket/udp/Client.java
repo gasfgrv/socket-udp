@@ -7,6 +7,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.security.NoSuchAlgorithmException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static br.com.gusto.fatec.socket.udp.utils.ValidPackets.valid;
@@ -18,15 +19,19 @@ public class Client {
     private static final Logger LOGGER = Logger.getLogger(Client.class.getSimpleName());
 
     public static void main(String[] args) throws IOException, NoSuchAlgorithmException {
-        // arquivo
         var img = new File("img/java.png");
+        byte[] data = converteImagemEmArrayDeBytes(img);
+        enviaPacote(data);
+    }
 
-        // lê a imagem e salva em um byte[]
+    private static byte[] converteImagemEmArrayDeBytes(File img) throws IOException {
         var output = new ByteArrayOutputStream();
         write(read(img), "jpg", output);
         byte[] data = output.toByteArray();
+        return data;
+    }
 
-        // envia o pacote
+    private static void enviaPacote(byte[] data) {
         try (var socket = new DatagramSocket()) {
             var address = InetAddress.getLocalHost();
             var send = new DatagramPacket(data, data.length, address, 15678);
@@ -34,6 +39,9 @@ public class Client {
             LOGGER.info(dataSend); // dados do envio
             LOGGER.info(format("Enviando imagem - Checksum: %s", valid(data))); // checksum para validar pacote
             socket.send(send); // enviar pacote
+        } catch (Exception e) {
+            LOGGER.warning(e.getMessage());
         }
     }
+
 }
