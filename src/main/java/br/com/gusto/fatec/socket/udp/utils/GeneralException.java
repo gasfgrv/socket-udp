@@ -9,6 +9,6 @@ public class GeneralException extends RuntimeException {
 
     public GeneralException(String message, Throwable cause) {
         super(message, cause);
-        LOGGER.error(message, cause);
+        LOGGER.error("{}. Causado por: {}", message, cause);
     }
 }

@@ -6,9 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -19,7 +17,7 @@ public class Server {
     private static final Logger LOGGER = LoggerFactory.getLogger(Server.class);
 
     public static void main(String[] args) {
-        try (DatagramSocket socket = new DatagramSocket(15678)) {
+        try (var socket = new DatagramSocket(15678)) {
             LOGGER.info("Socket ouvindo na porta 15678"); //Socket servidor
             conectarComCliente(socket);
         } catch (IOException e) {
@@ -28,47 +26,31 @@ public class Server {
     }
 
     private static void conectarComCliente(DatagramSocket socket) {
-        DatagramPacket receiver = receberPacote(socket);
-        logDadosCliente(receiver);
+        var receiver = receberPacote(socket);
+        LOGGER.info("[Cliente]: {}:{}", receiver.getAddress(), receiver.getPort());
         converterArrayDeBytesEmImagem(receiver);
     }
 
     private static DatagramPacket receberPacote(DatagramSocket socket) {
         try {
-            byte[] buffer = new byte[14274]; // buffer para receber o arquivo, 14274 é o tamanho da imagem
-            DatagramPacket receiver = new DatagramPacket(buffer, buffer.length); //receber o pacote
+            var buffer = new byte[14274]; // buffer para receber o arquivo, 14274 é o tamanho da imagem
+            var receiver = new DatagramPacket(buffer, buffer.length); //receber o pacote
+            var checksum = ValidPackets.valid(buffer);
             socket.receive(receiver);
-            logChecksum(buffer);
+            LOGGER.info("Imagem recebida - Checksum: {}}", checksum);
             return receiver;
         } catch (IOException e) {
             throw new GeneralException("Erro ao receber o pacote", e);
         }
     }
 
-    private static void logDadosCliente(DatagramPacket receiver) {
-        String clientData = String.format("[Cliente]: %s:%d", receiver.getAddress(), receiver.getPort());
-        LOGGER.info(clientData);
-    }
-
-    private static void logChecksum(byte[] buffer) {
-        String msg = String.format("Imagem recebida - Checksum: %s", ValidPackets.valid(buffer));
-        LOGGER.info(msg);
-    }
-
     private static void converterArrayDeBytesEmImagem(DatagramPacket receiver) {
-        try {
-            ByteArrayInputStream input = new ByteArrayInputStream(receiver.getData());
-            BufferedImage bImage2 = ImageIO.read(input);
-
-            File img = Paths.get("src", "main", "resources", "img", "javaCopy.jpg").toFile();
-
-            String mgsGenerateImage = String.format("Gerando imagem: %s", img.getAbsolutePath());
-            LOGGER.info(mgsGenerateImage);
-
+        try (var input = new ByteArrayInputStream(receiver.getData())) {
+            var bImage2 = ImageIO.read(input);
+            var img = Paths.get("src", "main", "resources", "img", "javaCopy.jpg").toFile();
+            LOGGER.info("Gerando imagem: {}", img.getAbsolutePath());
             ImageIO.write(bImage2, "jpg", img);
-
-            String mgsGeneratedImage = String.format("%s gerada", img.getAbsolutePath());
-            LOGGER.info(mgsGeneratedImage);
+            LOGGER.info("{} gerada", img.getAbsolutePath());
         } catch (IOException e) {
             LOGGER.error(e.getMessage());
         }

@@ -6,9 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -20,15 +18,14 @@ public class Client {
     private static final Logger LOGGER = LoggerFactory.getLogger(Client.class);
 
     public static void main(String[] args) {
-        byte[] data = converteImagemEmArrayDeBytes();
+        var data = converteImagemEmArrayDeBytes();
         enviaPacote(data);
     }
 
     private static byte[] converteImagemEmArrayDeBytes() {
-        try {
-            File img = Paths.get("src","main","resources", "img", "java.png").toFile();
-            BufferedImage read = ImageIO.read(img);
-            ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (var output = new ByteArrayOutputStream()) {
+            var img = Paths.get("src", "main", "resources", "img", "java.png").toFile();
+            var read = ImageIO.read(img);
             ImageIO.write(read, "jpg", output);
             return output.toByteArray();
         } catch (IOException e) {
@@ -37,17 +34,12 @@ public class Client {
     }
 
     private static void enviaPacote(byte[] data) {
-        try (DatagramSocket socket = new DatagramSocket()) {
-            InetAddress address = InetAddress.getLocalHost();
-            DatagramPacket send = new DatagramPacket(data, data.length, address, 15678);
-
-            String dataSend = String.format("[Servidor] %s:15678", address);
-            LOGGER.info(dataSend); // dados do envio
-
-
-            String format = String.format("Enviando imagem - Checksum: %s", ValidPackets.valid(data)); // checksum para validar pacote
-            LOGGER.info(format);
-
+        try (var socket = new DatagramSocket()) {
+            var address = InetAddress.getLocalHost();
+            var send = new DatagramPacket(data, data.length, address, 15678);
+            var checksum = ValidPackets.valid(data);
+            LOGGER.info("[Servidor] {}:15678", address); // dados do envio
+            LOGGER.info("Enviando imagem - Checksum: {}", checksum); // checksum para validar pacote
             socket.send(send); // enviar pacote
         } catch (Exception e) {
             throw new GeneralException("Erro ao enviar o pacote", e);
